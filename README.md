@@ -1,0 +1,1 @@
+Used following icons: [Fruit icons created by Smashicons - Flaticon](https://www.flaticon.com/free-icons/fruit)

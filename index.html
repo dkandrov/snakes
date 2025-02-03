@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Змейка на двоих с улучшениями</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #000;
+        }
+        canvas {
+            border: 2px solid #fff;
+        }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <script>
+        let gridSize = 20;
+        let cols, rows;
+        let snake1, snake2;
+        let foods = [];
+        let fruitImages = [];
+        let fruitCount = 5; // Максимальное количество фруктов
+
+        function preload() {
+            // Загружаем изображения для фруктов
+            for (let i = 1; i <= 5; i++) {
+                fruitImages.push(loadImage(`./images/fruit${i}.png`)); // Укажите пути к вашим изображениям
+            }
+        }
+
+        function setup() {
+            createCanvas(400, 400);
+            frameRate(10);
+            cols = floor(width / gridSize);
+            rows = floor(height / gridSize);
+
+            // Змейки появляются в разных углах
+            snake1 = new Snake(0, color(255, 0, 0), createVector(0, 0));
+            snake2 = new Snake(1, color(0, 0, 255), createVector(cols - 1, rows - 1));
+
+            // Создаем начальные фрукты
+            for (let i = 0; i < fruitCount; i++) {
+                spawnFood();
+            }
+        }
+
+        function draw() {
+            background(0);
+
+            // Обновляем и отрисовываем фрукты
+            for (let i = foods.length - 1; i >= 0; i--) {
+                let food = foods[i];
+                image(food.skin, food.x, food.y, gridSize, gridSize);
+
+                if (snake1.eat(food)) {
+                    foods.splice(i, 1); // Удаляем съеденный фрукт
+                    spawnFood(); // Добавляем новый фрукт
+                }
+                if (snake2.eat(food)) {
+                    foods.splice(i, 1); // Удаляем съеденный фрукт
+                    spawnFood(); // Добавляем новый фрукт
+                }
+            }
+
+            // Обновляем и отрисовываем змейки
+            snake1.update();
+            snake2.update();
+            snake1.show();
+            snake2.show();
+
+            // Проверка на столкновения
+            if (snake1.collide() || snake1.collideWith(snake2)) {
+                gameOver("Player 2 Wins!");
+            }
+            if (snake2.collide() || snake2.collideWith(snake1)) {
+                gameOver("Player 1 Wins!");
+            }
+
+            // Обновляем управление джойстиками
+            updateGamepads();
+        }
+
+        function spawnFood() {
+            let x = floor(random(cols)) * gridSize;
+            let y = floor(random(rows)) * gridSize;
+            let skin = random(fruitImages); // Выбираем случайный скин для фрукта
+            foods.push({ x, y, skin }); // Добавляем фрукт с позицией и скином
+        }
+
+        function gameOver(message) {
+            noLoop();
+            fill(255);
+            textSize(32);
+            textAlign(CENTER, CENTER);
+            text(message, width / 2, height / 2);
+        }
+
+        class Snake {
+            constructor(player, col, startPos) {
+                this.player = player;
+                this.col = col;
+                this.body = [];
+                this.body[0] = createVector(startPos.x * gridSize, startPos.y * gridSize);
+                this.xdir = 0;
+                this.ydir = 0;
+            }
+
+            update() {
+                let head = this.body[this.body.length - 1].copy();
+                this.body.shift();
+                head.x += this.xdir * gridSize;
+                head.y += this.ydir * gridSize;
+
+                // Прохождение сквозь стены
+                if (head.x >= width) head.x = 0;
+                else if (head.x < 0) head.x = width - gridSize;
+                if (head.y >= height) head.y = 0;
+                else if (head.y < 0) head.y = height - gridSize;
+
+                this.body.push(head);
+            }
+
+            show() {
+                fill(this.col);
+                for (let i = 0; i < this.body.length; i++) {
+                    rect(this.body[i].x, this.body[i].y, gridSize, gridSize);
+                }
+            }
+
+            setDir(x, y) {
+                this.xdir = x;
+                this.ydir = y;
+            }
+
+            eat(food) {
+                let head = this.body[this.body.length - 1];
+                if (head.x === food.x && head.y === food.y) {
+                    this.body.push(createVector(food.x, food.y));
+                    return true;
+                }
+                return false;
+            }
+
+            collide() {
+                let head = this.body[this.body.length - 1];
+                for (let i = 0; i < this.body.length - 1; i++) {
+                    if (this.body[i].x === head.x && this.body[i].y === head.y) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            collideWith(otherSnake) {
+                let head = this.body[this.body.length - 1];
+                for (let i = 0; i < otherSnake.body.length; i++) {
+                    if (otherSnake.body[i].x === head.x && otherSnake.body[i].y === head.y) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+
+        function updateGamepads() {
+            const gamepads = navigator.getGamepads();
+            if (gamepads[0]) { // Джойстик для игрока 1
+                const axisX = gamepads[0].axes[0]; // Левый стик, горизонталь
+                const axisY = gamepads[0].axes[1]; // Левый стик, вертикаль
+
+                if (abs(axisX) > 0.5) {
+                    snake1.setDir(axisX > 0 ? 1 : -1, 0);
+                } else if (abs(axisY) > 0.5) {
+                    snake1.setDir(0, axisY > 0 ? 1 : -1);
+                }
+            }
+            if (gamepads[1]) { // Джойстик для игрока 2
+                const axisX = gamepads[1].axes[0]; // Левый стик, горизонталь
+                const axisY = gamepads[1].axes[1]; // Левый стик, вертикаль
+
+                if (abs(axisX) > 0.5) {
+                    snake2.setDir(axisX > 0 ? 1 : -1, 0);
+                } else if (abs(axisY) > 0.5) {
+                    snake2.setDir(0, axisY > 0 ? 1 : -1);
+                }
+            }
+        }
+
+        function keyPressed() {
+            if (keyCode === UP_ARROW && snake2.ydir !== 1) {
+                snake2.setDir(0, -1);
+            } else if (keyCode === DOWN_ARROW && snake2.ydir !== -1) {
+                snake2.setDir(0, 1);
+            } else if (keyCode === LEFT_ARROW && snake2.xdir !== 1) {
+                snake2.setDir(-1, 0);
+            } else if (keyCode === RIGHT_ARROW && snake2.xdir !== -1) {
+                snake2.setDir(1, 0);
+            }
+
+            if (key === 'w' && snake1.ydir !== 1) {
+                snake1.setDir(0, -1);
+            } else if (key === 's' && snake1.ydir !== -1) {
+                snake1.setDir(0, 1);
+            } else if (key === 'a' && snake1.xdir !== 1) {
+                snake1.setDir(-1, 0);
+            } else if (key === 'd' && snake1.xdir !== -1) {
+                snake1.setDir(1, 0);
+            }
+        }
+    </script>
+</body>
+</html>
