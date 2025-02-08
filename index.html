@@ -37,7 +37,7 @@
 
         function setup() {
             createCanvas(800, 800);
-            frameRate(10);
+            frameRate(5);
             cols = floor(width / gridSize);
             rows = floor(height / gridSize);
 
@@ -76,13 +76,13 @@
             snake2.show();
 
             // Проверка на столкновения
-            if (snake1.collide() || snake1.collideWith(snake2)) {
-                gameOver("Player 2 Wins!");
-            }
-            if (snake2.collide() || snake2.collideWith(snake1)) {
-                gameOver("Player 1 Wins!");
-            }
-
+            // if (snake1.collide() || snake1.collideWith(snake2)) {
+            //     gameOver("Player 2 Wins!");
+            // }
+            // if (snake2.collide() || snake2.collideWith(snake1)) {
+            //     gameOver("Player 1 Wins!");
+            // }
+            
             // Обновляем управление джойстиками
             updateGamepads();
         }
